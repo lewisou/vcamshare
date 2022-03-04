@@ -1,6 +1,9 @@
 [submodule "depts/ffmpeg-kit"]
 	path = depts/ffmpeg-kit
 	url = https://github.com/tanersener/ffmpeg-kit.git
-[submodule "depts/boost"]
-	path = depts/boost
-	url = https://github.com/boostorg/boost.git
+[submodule "depts/Apple-Boost-BuildScript"]
+	path = depts/Apple-Boost-BuildScript
+	url = https://github.com/faithfracture/Apple-Boost-BuildScript.git
+[submodule "depts/Boost-for-Android"]
+	path = depts/Boost-for-Android
+	url = https://github.com/moritz-wundke/Boost-for-Android
