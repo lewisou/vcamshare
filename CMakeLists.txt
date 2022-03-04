@@ -11,15 +11,11 @@ set(main_sources
 list(TRANSFORM main_sources PREPEND "src/main/")
 
 set(test_sources
-    run.cpp
+    example_test.cpp
 )
 list(TRANSFORM test_sources PREPEND "src/test/")
 
-# set(COMPILE_FLAGS "-Wc++11-extensions")
-
-
-# add the executable
-add_library(${CMAKE_PROJECT_NAME} ${main_sources})
+add_library(${CMAKE_PROJECT_NAME} SHARED ${main_sources})
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 11)
 
 add_executable(test ${test_sources})
@@ -31,6 +27,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
 
 target_include_directories(test PUBLIC
 "${PROJECT_BINARY_DIR}"
+"${PROJECT_SOURCE_DIR}/libs/boost/include/"
 )
 
 target_link_libraries(test ${CMAKE_PROJECT_NAME})
+
+message(PLATFORM="${PLATFORM}")
