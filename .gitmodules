@@ -7,3 +7,6 @@
 [submodule "depts/Boost-for-Android"]
 	path = depts/Boost-for-Android
 	url = https://github.com/moritz-wundke/Boost-for-Android
+[submodule "depts/FFmpeg"]
+	path = depts/FFmpeg
+	url = https://github.com/FFmpeg/FFmpeg.git

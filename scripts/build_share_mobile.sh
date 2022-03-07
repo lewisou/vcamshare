@@ -7,17 +7,18 @@ build_android_abi() {
     NDK=/Users/lewisou/Library/Android/sdk/ndk-bundle
     MINSDKVERSION=23
 
-    mkdir -p $SCRIPT_DIR/../build/android/$ABI
-    cd $SCRIPT_DIR/../build/android/$ABI
+    BUILD_FOLDER=$SCRIPT_DIR/../build/android/$ABI
+    rm -rf $BUILD_FOLDER
+    mkdir -p $BUILD_FOLDER
+    cd $BUILD_FOLDER
 
     cmake \
         -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
         -DANDROID_ABI=$ABI \
         -DANDROID_PLATFORM=android-$MINSDKVERSION \
-        -DPLATFORM=android \
-        $SCRIPT_DIR/..
+        ../../..
 
-    make
+    make VERBOSE=1
 }
 
 build_android() {
@@ -39,4 +40,4 @@ build_ios() {
 }
 
 build_android
-build_ios
+# build_ios
