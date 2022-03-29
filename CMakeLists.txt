@@ -24,8 +24,13 @@ message(APPLE="${APPLE}")
 # Find library
 if(APPLE)
     find_library(AVFORMAT avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos)
+    find_library(AVUTIL avutil ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos)
+    find_library(AVCODEC avcodec ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos)
 elseif(ANDROID)
     find_library(AVFORMAT avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
+    find_library(AVUTIL avutil ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
+    find_library(AVCODEC avcodec ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
+
     # find_library(AVFORMAT 
     #             NAMES avformat
     #             PATHS ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI}
@@ -44,22 +49,22 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 # link for the main lib
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${AVFORMAT})
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE 
+                        ${AVFORMAT}
+                        ${AVUTIL}
+                        ${AVCODEC}
+                        )
 
 
-# add_executable(test ${test_sources})
-# set_property(TARGET test PROPERTY CXX_STANDARD 11)
+# Test executable ======================================
 
-# target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
-#                            "${PROJECT_BINARY_DIR}"
-#                            )
+add_executable(test ${test_sources})
+set_property(TARGET test PROPERTY CXX_STANDARD 11)
 
-# target_include_directories(test PUBLIC
-# "${PROJECT_BINARY_DIR}"
-# "${PROJECT_SOURCE_DIR}/libs/boost/include/"
-# )
+target_include_directories(test PUBLIC
+    "${PROJECT_BINARY_DIR}"
+    "${PROJECT_SOURCE_DIR}/libs/boost/include/"
+    "${PROJECT_SOURCE_DIR}/libs/FFmpeg/include/"
+)
 
-# target_link_libraries(test ${CMAKE_PROJECT_NAME})
-
-message(ANDROID="${ANDROID}")
-message(ANDROID_ABI="${ANDROID_ABI}")
+target_link_libraries(test PRIVATE ${CMAKE_PROJECT_NAME})
