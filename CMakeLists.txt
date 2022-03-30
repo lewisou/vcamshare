@@ -12,25 +12,26 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
 # src folder
 set(main_sources
     video_muxer.cpp
+    utils.cpp
 )
+
 list(TRANSFORM main_sources PREPEND "src/main/")
 
-set(test_sources
-    example_test.cpp
-)
-list(TRANSFORM test_sources PREPEND "src/test/")
-message(APPLE="${APPLE}")
 
 # Find library
 if(APPLE)
-    find_library(AVFORMAT avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos)
-    find_library(AVUTIL avutil ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos)
-    find_library(AVCODEC avcodec ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos)
+    message(CMAKE_SYSTEM_PROCESSOR="${CMAKE_SYSTEM_PROCESSOR}")
+    find_library(AVFORMAT avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+    find_library(AVUTIL avutil ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+    find_library(AVCODEC avcodec ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+    find_library(SWSCALE swscale ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+    find_library(SWRESAMPLE swresample ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
 elseif(ANDROID)
     find_library(AVFORMAT avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
     find_library(AVUTIL avutil ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
     find_library(AVCODEC avcodec ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
-
+    find_library(SWSCALE swscale ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
+    find_library(SWRESAMPLE swresample ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
     # find_library(AVFORMAT 
     #             NAMES avformat
     #             PATHS ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI}
@@ -53,10 +54,18 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
                         ${AVFORMAT}
                         ${AVUTIL}
                         ${AVCODEC}
+                        ${SWSCALE}
+                        ${SWRESAMPLE}
                         )
 
 
 # Test executable ======================================
+
+set(test_sources
+    main.cpp
+)
+
+list(TRANSFORM test_sources PREPEND "src/test/")
 
 add_executable(test ${test_sources})
 set_property(TARGET test PROPERTY CXX_STANDARD 11)
@@ -68,3 +77,8 @@ target_include_directories(test PUBLIC
 )
 
 target_link_libraries(test PRIVATE ${CMAKE_PROJECT_NAME})
+
+# Copy Test Files ==============
+if(APPLE)
+file(COPY ${PROJECT_SOURCE_DIR}/mt.h264 DESTINATION ${PROJECT_BINARY_DIR})
+endif()

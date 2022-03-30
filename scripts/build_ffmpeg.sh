@@ -46,10 +46,13 @@ build_macos() {
 
     TARGET_DIR=$SCRIPT_DIR/../libs/ffmpeg/macos/
     rm -rf $TARGET_DIR
-    mkdir -p $TARGET_DIR
-    mv ./prebuilt/bundle-apple-framework-macos-lts/*.framework $TARGET_DIR
+    mkdir -p $TARGET_DIR/x86_64/
+    mkdir -p $TARGET_DIR/arm64/
+
+    cp ./prebuilt/apple-macos-x86_64-lts/ffmpeg/lib/*.a $TARGET_DIR/x86_64/
+    cp ./prebuilt/apple-macos-arm64-lts/ffmpeg/lib/*.a $TARGET_DIR/arm64/
 }
 
-build_ios
+# build_ios
 # build_android
-# build_macos
+build_macos

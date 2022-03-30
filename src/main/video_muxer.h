@@ -2,6 +2,7 @@
 #define VXMT_VCAM_SHARE_VIDEO_MUXER
 
 #include <iostream>
+#include <vector>
 
 extern "C" {
 #include <libavutil/timestamp.h>
@@ -26,22 +27,23 @@ namespace vcamshare {
 
     class VideoMuxer {
     public:
-        VideoMuxer(int w, int h, uint8_t *extraData, int extraLen, 
-                    std::string filePath);
+        VideoMuxer(int w, int h, std::string filePath);
         ~VideoMuxer();
 
         // expected data stream 00 00 00 01 xx xx xx xx
-        void writeVideoFrames(const uint8_t *data, int len);
+        void writeVideoFrames(uint8_t * const data, int len);
 
         // expected data stram ADTS
-        void writeAudioFrames(const uint8_t *data, int len);
+        void writeAudioFrames(uint8_t * const data, int len);
 
-        void open();
+        void open(uint8_t *extraData, int extraLen);
         void close();
-
+        bool isOpen();
+        std::vector<uint8_t> getSpsPps();
+        uint8_t *fillSpsPps(uint8_t * const data, int len);
     private:
-        void addFrames(const uint8_t *data, int len, bool video);
-        void addStream(OutputStream *ost, AVFormatContext *oc,
+        void addFrames(uint8_t * const data, int len, bool video);
+        bool addStream(OutputStream *ost, AVFormatContext *oc,
                             const AVCodec **codec,
                             enum AVCodecID codec_id,
                             uint8_t *extra,
@@ -56,8 +58,7 @@ namespace vcamshare {
         int mWidth, mHeight;
         std::string mFilePath;
 
-        uint8_t mExtraData[256];
-        int mExtraLen;
+        std::vector<uint8_t> mSpsPps;
     };
 }
 

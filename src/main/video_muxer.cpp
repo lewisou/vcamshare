@@ -1,5 +1,6 @@
 
 #include "video_muxer.h"
+#include "utils.h"
 
 extern "C" {
 #define __STDC_CONSTANT_MACROS
@@ -17,21 +18,22 @@ extern "C" {
 
 namespace vcamshare {
 
-    VideoMuxer::VideoMuxer(int w, int h, uint8_t *extraData, int extraLen, std::string filePath) {
+    VideoMuxer::VideoMuxer(int w, int h, std::string filePath) {
         mWidth = w;
         mHeight = h;
         mFilePath = filePath;
-        mExtraLen = extraLen;
-        memcpy(mExtraData, extraData, mExtraLen);
-
-        open();
+        outputCtx = nullptr;
+        videoSt.enc = nullptr;
+        audioSt.enc = nullptr;
     }
 
     VideoMuxer::~VideoMuxer() {
         close();
     }
 
-    void VideoMuxer::open() {
+    void VideoMuxer::open(uint8_t *extraData, int extraLen) {
+        if(outputCtx) return;
+
         int ret;
 
         std::cout << "video file: " << mFilePath << std::endl;
@@ -45,9 +47,15 @@ namespace vcamshare {
             goto end;
         }
         
-        addStream(&videoSt, outputCtx, &videoCodec, AV_CODEC_ID_H264, mExtraData, mExtraLen);
-        addStream(&audioSt, outputCtx, &audioCodec, AV_CODEC_ID_AAC, NULL, 0);
+        if(!addStream(&videoSt, outputCtx, &videoCodec, AV_CODEC_ID_H264, extraData, extraLen)) {
+            goto end;
+        }
+        if(!addStream(&audioSt, outputCtx, &audioCodec, AV_CODEC_ID_AAC, nullptr, 0)) {
+            goto end;
+        }
 
+        av_dump_format(outputCtx, 0, mFilePath.c_str(), 1);
+        
         if (!(outputCtx->oformat->flags & AVFMT_NOFILE)) {
             ret = avio_open(&outputCtx->pb, mFilePath.c_str(), AVIO_FLAG_WRITE);
             if (ret < 0) {
@@ -56,7 +64,6 @@ namespace vcamshare {
             }
         }
 
-        av_dump_format(outputCtx, 0, mFilePath.c_str(), 1);
         ret = avformat_write_header(outputCtx, NULL);
         std::cout << "Header written: " << ret << std::endl;
 
@@ -70,49 +77,106 @@ namespace vcamshare {
         return;
 
         end:
+        std::cerr << "Something wrong in the end section." << std::endl;
+        close();
+    }
+    
+    bool VideoMuxer::isOpen() {
+        return outputCtx != nullptr;
+    }
+
+    void VideoMuxer::close() {
+        if(outputCtx) {
+            av_write_trailer(outputCtx);
+            std::cout << "trailer written!" << std::endl;
+        }
+
+        /* Close each codec. */
+        if(videoSt.enc) {
+            avcodec_free_context(&videoSt.enc);
+            videoSt.enc = nullptr;
+        }
+        
+        if(audioSt.enc) {
+            avcodec_free_context(&audioSt.enc);
+            audioSt.enc = nullptr;
+        }
+
         /* close output */
         if (outputCtx && !(outputCtx->oformat->flags & AVFMT_NOFILE)) {
             avio_closep(&outputCtx->pb);
         }
 
-        avformat_free_context(outputCtx);
-    }
-    
-    void VideoMuxer::close() {
         if(outputCtx) {
-            std::cout << "About to write the trailer" << std::endl;
-            av_write_trailer(outputCtx);
-            std::cout << "trailer written!" << std::endl;
-
-            /* Close each codec. */
-            std::cout << "1" << std::endl;
-            avcodec_free_context(&videoSt.enc);
-
-            std::cout << "2" << std::endl;
-            avcodec_free_context(&audioSt.enc);
-
-            std::cout << "3" << std::endl;
-            /* close output */
-            if (outputCtx && !(outputCtx->oformat->flags & AVFMT_NOFILE)) {
-                avio_closep(&outputCtx->pb);
-            }
-
-            std::cout << "4" << std::endl;
             avformat_free_context(outputCtx);
             outputCtx = nullptr;
-            std::cout << "5" << std::endl;
         }
     }
 
-    void VideoMuxer::writeVideoFrames(const uint8_t *data, int len) {
-        addFrames(data, len, true);
+    std::vector<uint8_t> VideoMuxer::getSpsPps() {
+        return mSpsPps;
     }
 
-    void VideoMuxer::writeAudioFrames(const uint8_t *data, int len) {
+    uint8_t *VideoMuxer::fillSpsPps(uint8_t * const data, int len) {
+        if ((data[4] & 0x1f) != 7) {
+            return data;
+        }
+
+        int max = len;
+        uint8_t *start = data;
+        uint8_t *head = nullptr;
+        int nalType = -1;
+        do {
+            head = searchH264Head(start + 1, max - 1);
+            if (head) {
+                nalType = head[4] & 0x1f;
+
+                max -= (head - start);
+                start = head;
+            } else {
+                nalType = -1;
+                break;
+            }
+        } while (nalType == 7 || nalType == 8 || nalType == 6);
+
+        // Now the head points to the next I/P nal or null.
+        int orgNalType = data[4] & 0x1f;
+        if (orgNalType == 7) {
+            int spsPpsLen = head == nullptr ? len : (head - data);
+            mSpsPps.clear();
+            for (int i = 0; i < spsPpsLen; i ++) {
+                mSpsPps.push_back(data[i]);
+            }
+        }
+        return head;
+    }
+
+    void VideoMuxer::writeVideoFrames(uint8_t * const data, int len) {
+        uint8_t *frame = fillSpsPps(data, len);
+
+        if(!isOpen()) {
+            if (mSpsPps.empty()) {
+                return;
+            }
+            open(mSpsPps.data(), mSpsPps.size());
+        }
+
+        if(isOpen() && frame) {
+            int nalType = frame[4] & 0x1f;
+            if (nalType != 1) std::cout << "nalType: " << nalType << std::endl;
+            
+            if (nalType == 5) {
+                addFrames(mSpsPps.data(), mSpsPps.size(), true);    
+            }
+            addFrames(frame, len - (frame - data), true);
+        }
+    }
+
+    void VideoMuxer::writeAudioFrames(uint8_t * const data, int len) {
         addFrames(data, len, false);
     }
 
-    void VideoMuxer::addFrames(const uint8_t *data, int len, bool video) {
+    void VideoMuxer::addFrames(uint8_t * const data, int len, bool video) {
         uint8_t *avdata = static_cast<uint8_t *>(av_malloc(len + AV_INPUT_BUFFER_PADDING_SIZE));
         memset(avdata + len, 0, AV_INPUT_BUFFER_PADDING_SIZE);
         memcpy(avdata, data, len);
@@ -129,16 +193,16 @@ namespace vcamshare {
             int ret = av_interleaved_write_frame(outputCtx, &pkt);
             stream->dts ++;
 
-            std::cout << "av_interleaved_write_frame: " << ret << std::endl;
+            // std::cout << "av_interleaved_write_frame: " << ret << std::endl;
         } else {
             std::cerr << "Failed to create AVPacket" << std::endl;
         }
 
         av_packet_unref(&pkt);
-        std::cout << "pkt freed" << std::endl;
+        // std::cout << "pkt freed" << std::endl;
     }
 
-    void VideoMuxer::addStream(OutputStream *ost, 
+    bool VideoMuxer::addStream(OutputStream *ost, 
                                 AVFormatContext *oc,
                                 const AVCodec **codec,
                                 enum AVCodecID codec_id,
@@ -152,20 +216,20 @@ namespace vcamshare {
         if (!(*codec)) {
             fprintf(stderr, "Could not find encoder for '%s'\n",
                     avcodec_get_name(codec_id));
-            exit(1);
+            return false;
         }
 
         ost->st = avformat_new_stream(oc, *codec);
         if (!ost->st) {
             fprintf(stderr, "Could not allocate stream\n");
-            exit(1);
+            return false;
         }
         ost->st->id = oc->nb_streams-1;
         c = avcodec_alloc_context3(*codec);
 
         if (!c) {
             fprintf(stderr, "Could not alloc an encoding context\n");
-            exit(1);
+            return false;
         }
         ost->enc = c;
 
@@ -248,10 +312,15 @@ namespace vcamshare {
                 break;
         }
 
+        /* Some formats want stream headers to be separate. */
+        if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+            c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+        }
+
         int ret = avcodec_parameters_from_context(ost->st->codecpar, c);
         if (ret < 0) {
-           fprintf(stderr, "Could not copy the stream parameters\n");
-            exit(1);
+            fprintf(stderr, "Could not copy the stream parameters\n");
+            return false;
         }
 
         if((*codec)->type == AVMEDIA_TYPE_AUDIO) {
@@ -260,8 +329,6 @@ namespace vcamshare {
             ost->st->codecpar->frame_size = 1024;
         }
 
-        /* Some formats want stream headers to be separate. */
-        if (oc->oformat->flags & AVFMT_GLOBALHEADER)
-            c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+        return true;
     }
 }
