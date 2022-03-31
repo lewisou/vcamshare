@@ -166,9 +166,10 @@ namespace vcamshare {
             if (nalType != 1) std::cout << "nalType: " << nalType << std::endl;
             
             if (nalType == 5) {
-                addFrames(mSpsPps.data(), mSpsPps.size(), true);    
+                // addFrames(mSpsPps.data(), mSpsPps.size(), true);    
             }
-            addFrames(frame, len - (frame - data), true);
+            // addFrames(frame, len - (frame - data), true);
+            addFrames(data, len, true);
         }
     }
 

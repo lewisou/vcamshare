@@ -81,4 +81,5 @@ target_link_libraries(test PRIVATE ${CMAKE_PROJECT_NAME})
 # Copy Test Files ==============
 if(APPLE)
 file(COPY ${PROJECT_SOURCE_DIR}/mt.h264 DESTINATION ${PROJECT_BINARY_DIR})
+file(COPY ${PROJECT_SOURCE_DIR}/mx_local.h264 DESTINATION ${PROJECT_BINARY_DIR})
 endif()

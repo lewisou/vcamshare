@@ -124,6 +124,15 @@ BOOST_AUTO_TEST_CASE(mt_muxing_test)
   });
 
   muxer.close();
+
+  VideoMuxer muxer2 {720, 576, "/tmp/vcamsharetest3.mp4"};
+
+  readH264File("mx_local.h264", [&muxer2] (uint8_t *data, int len) {
+    muxer2.writeVideoFrames(data, len);
+  });
+
+  muxer2.close();
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()
