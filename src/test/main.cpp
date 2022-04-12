@@ -110,14 +110,14 @@ BOOST_AUTO_TEST_CASE(muxing_searchSpsPps_spspps_filled_3)
   muxer.fillSpsPps(d1, boost::range_detail::array_size(d1));  
   auto spspps = muxer.getSpsPps();
   std::vector<uint8_t> expected(d1Exp, d1Exp + boost::range_detail::array_size(d1Exp));
-  
+
   BOOST_TEST(expected == spspps);
 }
 
 BOOST_AUTO_TEST_CASE(mt_muxing_test)
 {
   using namespace vcamshare;
-  VideoMuxer muxer {1920, 1080, "/tmp/vcamsharetest2.mp4"};
+  VideoMuxer muxer {1920, 1080, "/tmp/vcam_mt.mp4"};
 
   readH264File("mt.h264", [&muxer] (uint8_t *data, int len) {
     muxer.writeVideoFrames(data, len);
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(mt_muxing_test)
 
   muxer.close();
 
-  VideoMuxer muxer2 {720, 576, "/tmp/vcamsharetest3.mp4"};
+  VideoMuxer muxer2 {720, 576, "/tmp/vcam_mx.mp4"};
 
   readH264File("mx_local.h264", [&muxer2] (uint8_t *data, int len) {
     muxer2.writeVideoFrames(data, len);

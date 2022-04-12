@@ -87,8 +87,8 @@ namespace vcamshare {
 
     void VideoMuxer::close() {
         if(outputCtx) {
-            av_write_trailer(outputCtx);
-            std::cout << "trailer written!" << std::endl;
+            int rs = av_write_trailer(outputCtx);
+            std::cout << "trailer written: " << rs << std::endl;
         }
 
         /* Close each codec. */
@@ -162,14 +162,15 @@ namespace vcamshare {
         }
 
         if(isOpen() && frame) {
-            int nalType = frame[4] & 0x1f;
-            if (nalType != 1) std::cout << "nalType: " << nalType << std::endl;
+            // int nalType = frame[4] & 0x1f;
+            // if (nalType != 1) std::cout << "nalType: " << nalType << std::endl;
+            // std::cout << "nalType: " << nalType << std::endl;
             
-            if (nalType == 5) {
-                // addFrames(mSpsPps.data(), mSpsPps.size(), true);    
-            }
-            // addFrames(frame, len - (frame - data), true);
-            addFrames(data, len, true);
+            // if (nalType == 5) {
+            //     addFrames(mSpsPps.data(), mSpsPps.size(), true);    
+            // }
+            addFrames(frame, len - (frame - data), true);
+            // addFrames(data, len, true);
         }
     }
 
@@ -182,6 +183,9 @@ namespace vcamshare {
         memset(avdata + len, 0, AV_INPUT_BUFFER_PADDING_SIZE);
         memcpy(avdata, data, len);
         
+        // int nalType = data[4] & 0x1f;
+        // if (nalType != 1) std::cout << "nalType: " << nalType << std::endl;
+
         AVPacket pkt = { 0 };
         int rs = av_packet_from_data(&pkt, (uint8_t *)avdata, len + AV_INPUT_BUFFER_PADDING_SIZE);
         if(rs == 0) {
@@ -288,13 +292,13 @@ namespace vcamshare {
                 c->gop_size      = 12; /* emit one intra frame every twelve frames at most */
                 c->pix_fmt       = STREAM_PIX_FMT;
                 c->profile = FF_PROFILE_H264_BASELINE;
-                if(extra) {
-                    uint8_t *avextra = (uint8_t *)av_mallocz(extra_len + AV_INPUT_BUFFER_PADDING_SIZE);
-                    memset(avextra, 0, extra_len + AV_INPUT_BUFFER_PADDING_SIZE);
-                    memcpy(avextra, extra, extra_len);
-                    c->extradata = avextra;
-                    c->extradata_size = extra_len;
-                }
+                // if(extra) {
+                //     uint8_t *avextra = (uint8_t *)av_mallocz(extra_len + AV_INPUT_BUFFER_PADDING_SIZE);
+                //     memset(avextra, 0, extra_len + AV_INPUT_BUFFER_PADDING_SIZE);
+                //     memcpy(avextra, extra, extra_len);
+                //     c->extradata = avextra;
+                //     c->extradata_size = extra_len;
+                // }
 
                 if (c->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
                     /* just for testing, we also add B-frames */
@@ -324,10 +328,22 @@ namespace vcamshare {
             return false;
         }
 
-        if((*codec)->type == AVMEDIA_TYPE_AUDIO) {
-            ost->st->codecpar->channels = 2;
-            ost->st->codecpar->sample_rate = 48000;
-            ost->st->codecpar->frame_size = 1024;
+        switch ((*codec)->type) {
+            case AVMEDIA_TYPE_AUDIO:
+                ost->st->codecpar->channels = 2;
+                ost->st->codecpar->sample_rate = 48000;
+                ost->st->codecpar->frame_size = 1024;
+                break;
+            case AVMEDIA_TYPE_VIDEO:
+                if(extra) {
+                    uint8_t *avextra = (uint8_t *)av_mallocz(extra_len + AV_INPUT_BUFFER_PADDING_SIZE);
+                    memset(avextra, 0, extra_len + AV_INPUT_BUFFER_PADDING_SIZE);
+                    memcpy(avextra, extra, extra_len);
+
+                    ost->st->codecpar->extradata = avextra;
+                    ost->st->codecpar->extradata_size = extra_len;
+                }
+                break;
         }
 
         return true;
