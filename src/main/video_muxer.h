@@ -42,6 +42,7 @@ namespace vcamshare {
         std::vector<uint8_t> getSpsPps();
         uint8_t *fillSpsPps(uint8_t * const data, int len);
     private:
+        void logPacket(const AVFormatContext *fmt_ctx, const AVPacket *pkt);
         void addFrames(uint8_t * const data, int len, bool video);
         bool addStream(OutputStream *ost, AVFormatContext *oc,
                             const AVCodec **codec,

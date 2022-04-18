@@ -2,10 +2,14 @@
 
 SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 
+export ANDROID_SDK_ROOT=/Users/lewisou/Library/Android/sdk
+export ANDROID_NDK_ROOT=/Users/lewisou/Library/Android/sdk/ndk/22.0.7026061
+# 22.0.7026061
+
 build_android() {
     cd $SCRIPT_DIR/../depts/ffmpeg-kit/
 
-    ./android.sh --lts --speed --no-Archive
+    ./android.sh --lts --speed --no-archive
 
     TARGET_DIR=$SCRIPT_DIR/../libs/ffmpeg/android/armeabi-v7a/
     mkdir -p $TARGET_DIR
@@ -53,6 +57,6 @@ build_macos() {
     cp ./prebuilt/apple-macos-arm64-lts/ffmpeg/lib/*.a $TARGET_DIR/arm64/
 }
 
-# build_ios
-# build_android
+build_ios
+build_android
 build_macos
