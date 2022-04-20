@@ -35,12 +35,31 @@ build_android() {
 build_ios() {
     cd $SCRIPT_DIR/../depts/ffmpeg-kit/
 
-    ./ios.sh --lts --speed
+    # ./ios.sh --lts --speed
 
-    TARGET_DIR=$SCRIPT_DIR/../libs/ffmpeg/ios/
+    TARGET_DIR=$SCRIPT_DIR/../libs/ffmpeg/ios
     rm -rf $TARGET_DIR
     mkdir -p $TARGET_DIR
-    mv ./prebuilt/bundle-apple-framework-ios-lts/*.framework $TARGET_DIR
+
+    lib_array=()
+    FILES=(prebuilt/apple-ios-arm64-lts/ffmpeg*/lib/*.a)
+    for f in "${FILES[@]}"
+    do
+        REPLY=$(basename "$f")
+        lib_array+=("$REPLY")
+    done
+
+    for liba in "${lib_array[@]}"
+    do
+        echo Generate Fat: $liba
+        files_array=()
+        while IFS=  read -r -d $'\0'; do
+            files_array+=("$REPLY")
+        done < <(find prebuilt/apple-ios*lts/ffmpeg*/lib/$liba -print0)
+
+        files=${files_array[@]}
+        lipo -create $files -output $TARGET_DIR/$liba
+    done
 }
 
 build_macos() {
@@ -58,5 +77,5 @@ build_macos() {
 }
 
 build_ios
-build_android
-build_macos
+# build_android
+# build_macos

@@ -33,11 +33,12 @@ build_android() {
 build_ios() {
     BUILD_DIR=$SCRIPT_DIR/../build/ios/
 
+    rm -rf $BUILD_DIR
     mkdir -p $BUILD_DIR
     cd $BUILD_DIR
 
     cmake ../.. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DPLATFORM=ios
 }
 
-build_android
-# build_ios
+# build_android
+build_ios

@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(cppshare VERSION 0.1)
+project(vcamshare VERSION 0.1)
 
 configure_file(./src/config.h.in config.h)
 
@@ -13,21 +13,38 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
 set(main_sources
     video_muxer.cpp
     utils.cpp
+    vcamshare_ios.cpp
+)
+
+set(public_headers
+    video_muxer.h
+    vcamshare_ios.h
 )
 
 list(TRANSFORM main_sources PREPEND "src/main/")
+list(TRANSFORM public_headers PREPEND "src/main/")
 
 
 # Find library
 if(APPLE)
-    message(CMAKE_SYSTEM_PROCESSOR="${CMAKE_SYSTEM_PROCESSOR}")
-    find_library(AVFORMAT avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
-    find_library(AVUTIL avutil ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
-    find_library(AVCODEC avcodec ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
-    find_library(SWSCALE swscale ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
-    find_library(SWRESAMPLE swresample ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+    if(IOS)
+        # enable_language(Swift)
+        message(IOS="${IOS}")
+        find_library(AVUTIL avutil ${PROJECT_SOURCE_DIR}/libs/ffmpeg/ios NO_DEFAULT_PATH)
+        find_library(AVFORMAT2 avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/ios NO_DEFAULT_PATH)
+        find_library(AVCODEC avcodec ${PROJECT_SOURCE_DIR}/libs/ffmpeg/ios NO_DEFAULT_PATH)
+        find_library(SWSCALE swscale ${PROJECT_SOURCE_DIR}/libs/ffmpeg/ios NO_DEFAULT_PATH)
+        find_library(SWRESAMPLE swresample ${PROJECT_SOURCE_DIR}/libs/ffmpeg/ios NO_DEFAULT_PATH)
+    else()
+        message(CMAKE_SYSTEM_PROCESSOR="${CMAKE_SYSTEM_PROCESSOR}")
+        find_library(AVFORMAT2 avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+        find_library(AVUTIL avutil ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+        find_library(AVCODEC avcodec ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+        find_library(SWSCALE swscale ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+        find_library(SWRESAMPLE swresample ${PROJECT_SOURCE_DIR}/libs/ffmpeg/macos/${CMAKE_SYSTEM_PROCESSOR} NO_DEFAULT_PATH)
+    endif()
 elseif(ANDROID)
-    find_library(AVFORMAT avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
+    find_library(AVFORMAT2 avformat ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
     find_library(AVUTIL avutil ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
     find_library(AVCODEC avcodec ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
     find_library(SWSCALE swscale ${PROJECT_SOURCE_DIR}/libs/ffmpeg/android/${ANDROID_ABI} NO_DEFAULT_PATH)
@@ -40,7 +57,18 @@ endif()
 
 # The target itself
 add_library(${CMAKE_PROJECT_NAME} SHARED ${main_sources})
+
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY PUBLIC_HEADER "${public_headers}")
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY FRAMEWORK TRUE)
+install(FILES ${public_headers} DESTINATION include)
+# set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
+
+# if(IOS)
+#     set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
+#         FRAMEWORK TRUE
+#     )
+# endif()
 
 # include folders
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -51,7 +79,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # link for the main lib
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE 
-                        ${AVFORMAT}
+                        ${AVFORMAT2}
                         ${AVUTIL}
                         ${AVCODEC}
                         ${SWSCALE}
@@ -60,6 +88,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
 
 
 # Test executable ======================================
+
+if(APPLE)
+if(NOT IOS)
 
 set(test_sources
     main.cpp
@@ -79,7 +110,8 @@ target_include_directories(test PUBLIC
 target_link_libraries(test PRIVATE ${CMAKE_PROJECT_NAME})
 
 # Copy Test Files ==============
-if(APPLE)
 file(COPY ${PROJECT_SOURCE_DIR}/mt.h264 DESTINATION ${PROJECT_BINARY_DIR})
 file(COPY ${PROJECT_SOURCE_DIR}/mx_local.h264 DESTINATION ${PROJECT_BINARY_DIR})
+
+endif()
 endif()
