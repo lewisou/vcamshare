@@ -33,11 +33,26 @@ build_android() {
 build_ios() {
     BUILD_DIR=$SCRIPT_DIR/../build/ios/
 
-    rm -rf $BUILD_DIR
+    # rm -rf $BUILD_DIR
     mkdir -p $BUILD_DIR
     cd $BUILD_DIR
-
     cmake ../.. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DPLATFORM=ios
+
+    # xcodebuild clean build \
+    #     -project vcamshare.xcodeproj \
+    #     -scheme vcamshare \
+    #     -configuration Release \
+    #     -sdk iphoneos \
+    #     -derivedDataPath derived_data \
+    #     BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+
+    # xcodebuild clean build \
+    #   -project vcamshare.xcodeproj \
+    #   -scheme vcamshare \
+    #   -configuration Release \
+    #   -sdk iphonesimulator \
+    #   -derivedDataPath derived_data \
+    #   BUILD_LIBRARY_FOR_DISTRIBUTION=YES
 }
 
 # build_android

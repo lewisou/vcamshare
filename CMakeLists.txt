@@ -13,12 +13,11 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
 set(main_sources
     video_muxer.cpp
     utils.cpp
-    vcamshare_ios.cpp
+    vcamshare.cpp
 )
 
 set(public_headers
-    video_muxer.h
-    vcamshare_ios.h
+    vcamshare.h
 )
 
 list(TRANSFORM main_sources PREPEND "src/main/")
@@ -55,20 +54,18 @@ elseif(ANDROID)
     #             NO_DEFAULT_PATH)
 endif()
 
-# The target itself
+# The Target Properties
 add_library(${CMAKE_PROJECT_NAME} SHARED ${main_sources})
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 11)
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY PUBLIC_HEADER "${public_headers}")
-set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY FRAMEWORK TRUE)
-install(FILES ${public_headers} DESTINATION include)
-# set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
 
-# if(IOS)
-#     set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
-#         FRAMEWORK TRUE
-#     )
-# endif()
+if(IOS)
+    set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY FRAMEWORK TRUE)
+    # set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY MACOSX_BUNDLE_GUI_IDENTIFIER "com.vxmt.vcamshare")
+endif()
+
+# install(FILES ${public_headers} DESTINATION include)
 
 # include folders
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -85,7 +82,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
                         ${SWSCALE}
                         ${SWRESAMPLE}
                         )
-
 
 # Test executable ======================================
 

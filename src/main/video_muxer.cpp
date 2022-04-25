@@ -169,6 +169,10 @@ namespace vcamshare {
                 return;
             }
             open(mSpsPps.data(), mSpsPps.size());
+
+            if(!isOpen()) {
+                std::cerr << "Failed to open Muxer!" << std::endl;
+            }
         }
 
         if(isOpen() && frame) {
